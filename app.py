@@ -118,6 +118,6 @@ def open_browser():
 
 if __name__ == "__main__":
     #open_browser()
-    #app.run(debug=True, use_reloader=False)
+    app.run()
 
-    serve(app, host="0.0.0.0", port=8080)
+    #serve(app, host="0.0.0.0", port=8080)
