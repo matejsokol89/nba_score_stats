@@ -69,8 +69,15 @@ def get_score():
         away_leaders_position = content['scoreboard']['games'][i]['gameLeaders']['awayLeaders']['position']
         home_leaders_id = content['scoreboard']['games'][i]['gameLeaders']['homeLeaders']['personId']
         away_leaders_id = content['scoreboard']['games'][i]['gameLeaders']['awayLeaders']['personId']
-        player_picture_home_leader = f'https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{home_leaders_id}.png'
-        player_picture_away_leader = f'https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{away_leaders_id}.png'
+        print(home_leaders_id)
+        player_picture_home_leader = ""
+        player_picture_away_leader = ""
+        if home_leaders_id == 0:
+            player_picture_home_leader = "https://cdn-icons-png.flaticon.com/512/56/56745.png"
+            player_picture_away_leader = "https://cdn-icons-png.flaticon.com/512/56/56745.png"
+        if home_leaders_id is not 0:
+            player_picture_home_leader = f'https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{home_leaders_id}.png'
+            player_picture_away_leader = f'https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{away_leaders_id}.png'
 
         # NBA team win/lose
         away_team_wins = content['scoreboard']['games'][i]['awayTeam']['wins']
