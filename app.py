@@ -16,7 +16,7 @@ def get_score():
     content = games.get_dict()
     # print(content['scoreboard']['games'][0]['homeTeam']['teamName'])
     nba_games = content['scoreboard']['games']
-    print(nba_games)
+    print("#### Started ####")
     list_nba = []
     for i in range(len(nba_games)):
         # Team name, status, score, tricode
@@ -107,17 +107,9 @@ def get_score():
                      'homeTeamArena': str(home_team_arena).upper()}
         list_nba.append(dict_temp)
     dict_nba = {'teams': list_nba}
-    print(dict_nba)
+    #print(dict_nba)
 
     return render_template("scoreboard.html", **dict_nba)
 
-
-def open_browser():
-    Timer(1, lambda: webbrowser.open("http://127.0.0.1:5000")).start()
-
-
 if __name__ == "__main__":
-    #open_browser()
     app.run()
-
-    #serve(app, host="0.0.0.0", port=8080)
