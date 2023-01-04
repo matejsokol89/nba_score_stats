@@ -3,6 +3,7 @@ from nba_api.live.nba.endpoints import scoreboard
 from nba_api.stats.endpoints import teamdetails
 import webbrowser
 from threading import Timer
+from waitress import serve
 
 app = Flask(__name__)
 
@@ -117,4 +118,6 @@ def open_browser():
 
 if __name__ == "__main__":
     #open_browser()
-    app.run(debug=True, use_reloader=False)
+    #app.run(debug=True, use_reloader=False)
+
+    serve(app, host="0.0.0.0", port=8080)
