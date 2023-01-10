@@ -1,6 +1,10 @@
+import os
+
 from flask import Flask, render_template
 from nba_api.live.nba.endpoints import scoreboard
 from nba_api.stats.endpoints import teamdetails
+from nba_api.live.nba.endpoints import boxscore
+
 import webbrowser
 from threading import Timer
 from waitress import serve
@@ -16,6 +20,7 @@ def get_score():
     content = games.get_dict()
     # print(content['scoreboard']['games'][0]['homeTeam']['teamName'])
     nba_games = content['scoreboard']['games']
+    print(nba_games)
     print("#### Started ####")
     list_nba = []
     for i in range(len(nba_games)):
@@ -69,7 +74,7 @@ def get_score():
         away_leaders_position = content['scoreboard']['games'][i]['gameLeaders']['awayLeaders']['position']
         home_leaders_id = content['scoreboard']['games'][i]['gameLeaders']['homeLeaders']['personId']
         away_leaders_id = content['scoreboard']['games'][i]['gameLeaders']['awayLeaders']['personId']
-        print(home_leaders_id)
+        # print(home_leaders_id)
         player_picture_home_leader = ""
         player_picture_away_leader = ""
         if home_leaders_id == 0:
@@ -86,10 +91,17 @@ def get_score():
         home_team_losses = content['scoreboard']['games'][i]['awayTeam']['losses']
 
         # Team city and arena
+        game_id = content['scoreboard']['games'][i]['gameId']
+        box = boxscore.BoxScore(game_id=game_id).get_dict()
         home_team_id = content['scoreboard']['games'][i]['homeTeam']['teamId']
-        team_profile = teamdetails.TeamDetails(str(home_team_id)).get_dict()
-        home_team_city = team_profile['resultSets'][0]['rowSet'][0][4]
-        home_team_arena = team_profile['resultSets'][0]['rowSet'][0][5]
+        # team_profile = teamdetails.TeamDetails(home_team_id).get_dict()
+        # home_team_city = team_profile['resultSets'][0]['rowSet'][0][4]
+        # home_team_arena = team_profile['resultSets'][0]['rowSet'][0][5]
+        home_team_city = box['game']['arena']['arenaCity']
+        home_team_arena = box['game']['arena']['arenaName']
+        home_team_state = box['game']['arena']['arenaState']
+
+        print(box['game']['arena']['arenaName'])
 
         # Custom dictionary
         dict_temp = {'gameStatusText': status_text, 'period': period, 'awayTeam': away_team, 'homeTeam': home_team,
@@ -111,12 +123,13 @@ def get_score():
                      'awayLeadersPosition': away_leaders_position, 'homeLeadersPosition': home_leaders_position,
                      'awayTeamWins': away_team_wins, 'awayTeamLosses': away_team_losses, 'homeTeamWins': home_team_wins,
                      'homeTeamLosses': home_team_losses, 'gameRecap': game_recap_link, 'homeTeamCity': home_team_city,
-                     'homeTeamArena': str(home_team_arena).upper()}
+                     'homeTeamArena': str(home_team_arena).upper(), 'homeTeamState': home_team_state}
         list_nba.append(dict_temp)
     dict_nba = {'teams': list_nba}
-    #print(dict_nba)
-
+    # print(dict_nba)
     return render_template("scoreboard.html", **dict_nba)
+
 
 if __name__ == "__main__":
     app.run()
+    # serve(app, host='0.0.0.0', port=8080,channel_timeout=120)
