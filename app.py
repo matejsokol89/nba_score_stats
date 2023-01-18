@@ -1,13 +1,7 @@
-import os
-
 from flask import Flask, render_template
 from nba_api.live.nba.endpoints import scoreboard
-from nba_api.stats.endpoints import teamdetails
 from nba_api.live.nba.endpoints import boxscore
-
-import webbrowser
-from threading import Timer
-from waitress import serve
+from nba_api.stats.endpoints import teamdetails, boxscoretraditionalv2
 
 app = Flask(__name__)
 
@@ -20,7 +14,6 @@ def get_score():
     content = games.get_dict()
     # print(content['scoreboard']['games'][0]['homeTeam']['teamName'])
     nba_games = content['scoreboard']['games']
-    print(nba_games)
     print("#### Started ####")
     list_nba = []
     for i in range(len(nba_games)):
@@ -43,11 +36,11 @@ def get_score():
         second_period_home = content['scoreboard']['games'][i]['homeTeam']['periods'][1]['score']
         third_period_home = content['scoreboard']['games'][i]['homeTeam']['periods'][2]['score']
         fourth_period_home = content['scoreboard']['games'][i]['homeTeam']['periods'][3]['score']
-
         # NBA logos
         game_recap_link = f'https://www.nba.com/watch/video/game-recap-{home_team}-{home_team_score}-{away_team}-{away_team_score}'.lower()
         if home_team_score < away_team_score:
             game_recap_link = f'https://www.nba.com/watch/video/game-recap-{away_team}-{away_team_score}-{home_team}-{home_team_score}'.lower()
+
         if "UTA" in away_tricode:
             away_tricode = "UTAH"
         if "NOP" in away_tricode:
@@ -89,22 +82,20 @@ def get_score():
         away_team_losses = content['scoreboard']['games'][i]['awayTeam']['losses']
         home_team_wins = content['scoreboard']['games'][i]['homeTeam']['wins']
         home_team_losses = content['scoreboard']['games'][i]['awayTeam']['losses']
-
-        # Team city and arena
-        game_id = content['scoreboard']['games'][i]['gameId']
-        box = boxscore.BoxScore(game_id=game_id).get_dict()
         home_team_id = content['scoreboard']['games'][i]['homeTeam']['teamId']
-        # team_profile = teamdetails.TeamDetails(home_team_id).get_dict()
-        # home_team_city = team_profile['resultSets'][0]['rowSet'][0][4]
-        # home_team_arena = team_profile['resultSets'][0]['rowSet'][0][5]
-        home_team_city = box['game']['arena']['arenaCity']
-        home_team_arena = box['game']['arena']['arenaName']
-        home_team_state = box['game']['arena']['arenaState']
-
-        print(box['game']['arena']['arenaName'])
+        game_id = content['scoreboard']['games'][i]['gameId']
+        # Team city and arena
+        if int(home_team_score) > 0:
+            box = boxscore.BoxScore(game_id=game_id).get_dict()
+            home_team_city = box['game']['arena']['arenaCity']
+            home_team_arena = box['game']['arena']['arenaName']
+            home_team_state = box['game']['arena']['arenaState']
+        if home_team_score is 0:
+            home_team_arena = home_team_state = home_team_city = ""
 
         # Custom dictionary
-        dict_temp = {'gameStatusText': status_text, 'period': period, 'awayTeam': away_team, 'homeTeam': home_team,
+        dict_temp = {'gameIdScore': game_id, 'gameStatusText': status_text, 'period': period, 'awayTeam': away_team,
+                     'homeTeam': home_team,
                      'awayTricode': away_tricode,
                      'homeTricode': home_tricode, 'homeTeamId': home_team_id, 'logoSiteAway': logo_site_away,
                      'logoSiteHome': logo_site_home,
@@ -126,8 +117,78 @@ def get_score():
                      'homeTeamArena': str(home_team_arena).upper(), 'homeTeamState': home_team_state}
         list_nba.append(dict_temp)
     dict_nba = {'teams': list_nba}
-    # print(dict_nba)
     return render_template("scoreboard.html", **dict_nba)
+
+
+@app.route("/box-score/<id>")
+def get_box_score(id):
+    games = scoreboard.ScoreBoard()
+    content = games.get_dict()
+    # print(content['scoreboard']['games'][0]['homeTeam']['teamName'])
+    nba_games = content['scoreboard']['games']
+    list_nba = []
+    list_teams = []
+    for i in range(len(nba_games)):
+        status_text = content['scoreboard']['games'][i]['gameStatusText']
+        game_id = content['scoreboard']['games'][i]['gameId']
+
+        if "Final" in status_text:
+            box_score_sum = boxscoretraditionalv2.BoxScoreTraditionalV2(game_id).get_normalized_dict()
+            list_of_players = box_score_sum['PlayerStats']
+            # list_of_teams = box_score_sum['TeamStats']
+            for index in range(len(list_of_players)):
+                player_id = list_of_players[index]['PLAYER_ID']
+                player_name = list_of_players[index]['PLAYER_NAME']
+                player_pts = list_of_players[index]['PTS']
+                player_reb = list_of_players[index]['REB']
+                player_ast = list_of_players[index]['AST']
+                player_stl = list_of_players[index]['STL']
+                player_min = list_of_players[index]['MIN']
+                game_id_lot = list_of_players[index]['GAME_ID']
+                player_picture = f'https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png'
+
+                if player_min is not None and '000000:' in player_min:
+                    fix_time = player_min.split(':')
+                    cast_num = str(int(float(fix_time[0]))) + ':' + str(fix_time[1])
+                    player_min = cast_num
+                team_city = list_of_players[index]['TEAM_CITY']
+                if player_pts is None:
+                    player_pts = "DNP"
+                    player_reb = player_ast = player_stl = player_min = ""
+                dict_temp = {'playerName': player_name, 'playerPts': player_pts, 'playerReb': player_reb,
+                             'playerAst': player_ast, 'playerStl': player_stl, 'playerMin': player_min,
+                             'playerCity': team_city, 'playerPicture': player_picture, 'lotGameId': game_id_lot,
+                             'idGame': id}
+                list_nba.append(dict_temp)
+
+            away_team = content['scoreboard']['games'][i]['awayTeam']['teamName']
+            home_team = content['scoreboard']['games'][i]['homeTeam']['teamName']
+            away_team_city = content['scoreboard']['games'][i]['awayTeam']['teamCity']
+            home_team_city = content['scoreboard']['games'][i]['homeTeam']['teamCity']
+            away_tricode = content['scoreboard']['games'][i]['awayTeam']['teamTricode']
+            home_tricode = content['scoreboard']['games'][i]['homeTeam']['teamTricode']
+            if "UTA" in away_tricode:
+                away_tricode = "UTAH"
+            if "NOP" in away_tricode:
+                away_tricode = "NO"
+            logo_site_away = f'https://a1.espncdn.com/combiner/i?img=/i/teamlogos/nba/500/scoreboard/{away_tricode}.png&h=70&w=70'
+            if "NOP" in home_tricode:
+                home_tricode = "NO"
+            if "UTA" in home_tricode:
+                home_tricode = "UTAH"
+            logo_site_home = f'https://a1.espncdn.com/combiner/i?img=/i/teamlogos/nba/500/scoreboard/{home_tricode}.png&h=70&w=70'
+            dict_team = {'awayCity': away_team_city, 'awayTricode': away_tricode,
+                         'awayTeam': away_team, 'homeCity': home_team_city, 'homeTeam': home_team,
+                         'homeTricode': home_tricode, 'logoSiteAway': logo_site_away,
+                         'logoSiteHome': logo_site_home, 'ltGameId': game_id, 'idGame': id}
+            list_teams.append(dict_team)
+        else:
+            return "Statistic will be available after game is finished.", 404
+
+    dict_box_socre = {'player_statistics': list_nba}
+    dict_teams = {'teams_played': list_teams}
+    print("#######################################")
+    return render_template("boxscore.html", **dict_box_socre, **dict_teams)
 
 
 if __name__ == "__main__":
