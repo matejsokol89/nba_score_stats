@@ -144,13 +144,18 @@ def get_box_score(id):
                     player_reb = box_score_old['game']['homeTeam']['players'][index]['statistics']['reboundsTotal']
                     player_ast = box_score_old['game']['homeTeam']['players'][index]['statistics']['assists']
                     player_stl = box_score_old['game']['homeTeam']['players'][index]['statistics']['steals']
-                    player_min = box_score_old['game']['homeTeam']['players'][index]['statistics']['minutes']
                     team_city = box_score_old['game']['homeTeam']['teamCity']
                     game_id_lot = box_score_old['game']['gameId']
+                    player_min = box_score_old['game']['homeTeam']['players'][index]['statistics'][
+                        'minutesCalculated'].replace('PT', '').replace('M', ' min')
+                    if '00' in player_min:
+                        player_pts = "DNP"
+                        player_reb = player_ast = player_stl = player_min = ""
                     player_picture = f'https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png'
                     dict_temp = {'playerName': player_name, 'playerPts': player_pts, 'playerReb': player_reb,
                                  'playerAst': player_ast, 'playerStl': player_stl, 'playerMin': player_min,
-                                 'playerCity': team_city, 'playerPicture': player_picture, 'lotGameId': game_id_lot,'idGame':id}
+                                 'playerCity': team_city, 'playerPicture': player_picture, 'lotGameId': game_id_lot,
+                                 'idGame': id}
                     list_nba.append(dict_temp)
             if 'awayTeam' in box_score_old['game']:
                 list_of_players = box_score_old['game']['awayTeam']['players']
@@ -161,7 +166,11 @@ def get_box_score(id):
                     player_reb = box_score_old['game']['awayTeam']['players'][index]['statistics']['reboundsTotal']
                     player_ast = box_score_old['game']['awayTeam']['players'][index]['statistics']['assists']
                     player_stl = box_score_old['game']['awayTeam']['players'][index]['statistics']['steals']
-                    player_min = box_score_old['game']['awayTeam']['players'][index]['statistics']['minutes']
+                    player_min = box_score_old['game']['awayTeam']['players'][index]['statistics'][
+                        'minutesCalculated'].replace('PT', '').replace('M', ' min')
+                    if '00' in player_min:
+                        player_pts = "DNP"
+                        player_reb = player_ast = player_stl = player_min = ""
                     team_city = box_score_old['game']['awayTeam']['teamCity']
                     game_id_lot = box_score_old['game']['gameId']
                     player_picture = f'https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png'
@@ -190,7 +199,7 @@ def get_box_score(id):
             dict_team = {'awayCity': away_team_city, 'awayTricode': away_tricode,
                          'awayTeam': away_team, 'homeCity': home_team_city, 'homeTeam': home_team,
                          'homeTricode': home_tricode, 'logoSiteAway': logo_site_away,
-                         'logoSiteHome': logo_site_home,'ltGameId': game_id, 'idGame':id}
+                         'logoSiteHome': logo_site_home, 'ltGameId': game_id, 'idGame': id}
             list_teams.append(dict_team)
         else:
             return "Statistic will be available after game is finished.", 404
@@ -203,4 +212,4 @@ def get_box_score(id):
 
 if __name__ == "__main__":
     app.run()
-    #serve(app, host='0.0.0.0', port=8080,channel_timeout=120)
+    # serve(app, host='0.0.0.0', port=8080,channel_timeout=120)
